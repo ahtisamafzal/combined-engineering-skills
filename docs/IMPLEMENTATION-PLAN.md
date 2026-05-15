@@ -116,7 +116,7 @@ combined-skills/
 
 ## Implementation Steps
 
-### Step 1: Clean Up Existing Empty Folders
+### Step 1: Clean Up Existing Empty Folders — **DONE**
 
 Remove folders that don't belong in the final structure:
 
@@ -127,7 +127,7 @@ skills/misc/              (skills moved to engineering/ or excluded)
 
 **Verification:** `skills/core/` and `skills/misc/` no longer exist.
 
-### Step 2: Copy Pocock Skills
+### Step 2: Copy Pocock Skills — **DONE**
 
 Copy all files from the source directories. Each skill folder and all its supporting files must be copied as-is.
 
@@ -158,7 +158,7 @@ Source paths (all under `C:\Projects\01.Helper-Projects\mattpocock\skills\skills
 
 **Verification:** All 16 skill folders exist under `skills\engineering\` (12) and `skills\productivity\` (4). Each has at minimum a SKILL.md. Supporting files are present where listed above.
 
-### Step 3: Write CLAUDE.md and AGENTS.md
+### Step 3: Write CLAUDE.md and AGENTS.md — **DONE**
 
 Copy the **verbatim** Karpathy principles from `C:\Projects\01.Helper-Projects\andrej-karpathy\skills\CLAUDE.md` into both files. No additions, no modifications.
 
@@ -184,7 +184,7 @@ The content must be exactly:
 - No occurrences of `/` followed by a skill name
 - Content matches original Karpathy CLAUDE.md verbatim
 
-### Step 4: Write CONTRIBUTING.md
+### Step 4: Write CONTRIBUTING.md — **DONE**
 
 Extract the repo management instructions from Pocock's original `CLAUDE.md` into a separate file.
 
@@ -198,7 +198,7 @@ Source: `C:\Projects\01.Helper-Projects\mattpocock\skills\CLAUDE.md`
 
 **Verification:** CONTRIBUTING.md exists and contains bucket structure rules. CLAUDE.md and AGENTS.md do NOT contain these rules.
 
-### Step 5: Rewrite git-guardrails Skill
+### Step 5: Rewrite git-guardrails Skill — **DONE**
 
 The copied `git-guardrails-claude-code` skill only supports Claude Code. Rewrite `engineering\git-guardrails\SKILL.md` to support **both platforms** with a branching setup flow.
 
@@ -259,7 +259,7 @@ description: Set up git safety hooks to block dangerous git commands (push, rese
 - Claude Code path is unchanged from original
 - `scripts/block-dangerous-git.sh` is present for Claude Code path
 
-### Step 6: Find-and-Replace Stale References
+### Step 6: Find-and-Replace Stale References — **DONE**
 
 Several copied files contain references to the old setup skill name. These must be updated.
 
@@ -276,7 +276,7 @@ Several copied files contain references to the old setup skill name. These must 
 
 **Verification:** Grep the entire `skills\` directory for `matt-pocock` and `Matt Pocock` — should return zero results.
 
-### Step 7: Update setup-combined-skills SKILL.md
+### Step 7: Update setup-combined-skills SKILL.md — **DONE**
 
 Based on the original `setup-matt-pocock-skills/SKILL.md` with these changes:
 
@@ -286,12 +286,12 @@ Based on the original `setup-matt-pocock-skills/SKILL.md` with these changes:
 4. Intro paragraph updated to say "combined skills" instead of "Matt Pocock's"
 5. Add a one-line note: "Engineering principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) are active by default and require no configuration."
 6. All body references to `setup-matt-pocock-skills` changed to `setup-combined-skills`
-7. Section D for principles config — do NOT add (principles need no configuration)
+7. Section D for principles config — do NOT add (principles need no per-project configuration)
 8. All other sections (A: Issue tracker, B: Triage labels, C: Domain docs) remain unchanged
 
 **Verification:** Diff the new file against the original. Changes should be limited to name/description swaps and the one-line note addition. No structural changes.
 
-### Step 8: Create plugin.json
+### Step 8: Create plugin.json — **DONE**
 
 ```json
 {
@@ -321,7 +321,7 @@ Based on the original `setup-matt-pocock-skills/SKILL.md` with these changes:
 
 **Verification:** Count entries = 16. All paths match actual folder locations.
 
-### Step 9: Create Bucket READMEs
+### Step 9: Create Bucket READMEs — **DONE**
 
 Create `skills/engineering/README.md` and `skills/productivity/README.md`.
 
@@ -329,7 +329,7 @@ Each lists every skill in the bucket with a one-line description, skill name lin
 
 **Verification:** Both README files exist. Each skill folder has a corresponding entry.
 
-### Step 10: Create README.md
+### Step 10: Create README.md — **DONE**
 
 Sections to include:
 
@@ -355,45 +355,70 @@ Sections to include:
 
 **Verification:** README contains no slash-command references in behavioral descriptions. Skill count is 16 everywhere.
 
-### Step 11: Final Verification
+### Step 11: Final Verification — **DONE**
 
-Run these checks against the completed build:
+All checks passed:
 
-| Check | How |
-|-------|-----|
-| All 16 skill folders exist | `ls skills/engineering/` shows 12, `ls skills/productivity/` shows 4 |
-| All supporting files present | Compare against the file table in Step 2 |
-| No stale references | `grep -r "matt-pocock" skills/` returns nothing |
-| No stale references | `grep -r "Matt Pocock" skills/` returns nothing |
-| CLAUDE.md and AGENTS.md exist | Both files present at root |
-| CLAUDE.md = AGENTS.md | Diff the two files (header line excepted) |
-| CLAUDE.md matches Karpathy original | Diff against source |
-| CONTRIBUTING.md exists | File present at root, contains repo management rules |
-| CLAUDE.md has no repo management rules | `grep "bucket" CLAUDE.md` returns nothing |
-| plugin.json has 16 entries | Count the skills array |
-| plugin.json paths match folders | Each path resolves to a folder with SKILL.md |
-| setup-combined-skills has one-line note | Read file, find "active by default" |
-| git-guardrails has dual-platform content | Read file, find both "Claude Code" and "opencode" sections |
-| Bucket READMEs exist | `skills/engineering/README.md` and `skills/productivity/README.md` both exist |
-| No core/ or misc/ folders | `skills/core/` and `skills/misc/` do not exist |
+| Check | Result |
+|-------|--------|
+| All 16 skill folders exist | PASS |
+| All supporting files present | PASS |
+| No stale references | PASS |
+| CLAUDE.md and AGENTS.md exist | PASS |
+| CLAUDE.md = AGENTS.md | PASS |
+| CONTRIBUTING.md exists | PASS |
+| plugin.json has 16 entries | PASS |
+| plugin.json paths match folders | PASS |
+| setup-combined-skills has one-line note | PASS |
+| git-guardrails has dual-platform content | PASS |
+| Bucket READMEs exist | PASS |
+| No core/ or misc/ folders | PASS |
 
-### Step 12: Installation
+### Step 12: Installation — **DONE**
 
 **For Claude Code:**
 ```bash
-npx skills@latest add ./path/to/combined-skills
+npx skills@latest add --yes --global
 ```
+Claude Code installation working via plugin cache at `~/.claude/plugins/cache/`.
 
 **For opencode:**
-1. Copy skills to `~/.agents/skills/combined-engineering-skills/` (opencode auto-loads from this directory)
-2. Copy `AGENTS.md` content to your project root or add it to `instructions` in `opencode.json`:
-   ```json
-   {
-     "instructions": ["AGENTS.md"]
-   }
-   ```
 
-### Step 13: Smoke Test
+> **Critical: opencode requires skills to be published to GitHub and installed via `npx skills add`. Local-path installation does NOT work.**
+
+```bash
+# 1. Initialize git repo and push to GitHub
+git init
+git add -A
+git commit -m "Initial commit"
+gh repo create combined-engineering-skills --public --push
+
+# 2. Install globally via npx skills
+npx skills@latest add <github-org>/combined-engineering-skills --global --yes
+```
+
+opencode discovers skills from these global locations (per [docs](https://opencode.ai/docs/skills/)):
+- `~/.config/opencode/skills/<name>/SKILL.md` (primary)
+- `~/.agents/skills/<name>/SKILL.md` (agent-compatible)
+- `~/.claude/skills/<name>/SKILL.md` (Claude-compatible)
+
+Skills are loaded on-demand via the `skill` tool — not listed as slash commands.
+
+**What was tried and failed:**
+- Flat copy to `~/.agents/skills/` — files on disk but not loaded without lock registration
+- Manual `.skill-lock.json` entries with `sourceType: "local"` — silently ignored by opencode
+- `skills.paths` in `opencode.json` — confirmed ineffective
+- `npx skills add` with local path — installs Claude Code side but doesn't update `.skill-lock.json`
+
+**What worked:**
+- Push to GitHub, then `npx skills add <org>/<repo> --global` — properly registers in `.skill-lock.json` with `sourceType: "github"`
+
+**Side effect:** `npx skills add` replaces `.skill-lock.json` contents. Previously installed skills (emil-design-eng, find-skills, microsoft-foundry) were displaced and had to be reinstalled from their original sources:
+- `emilkowalski/skill@emil-design-eng`
+- `vercel-labs/skills@find-skills`
+- `microsoft/azure-skills@microsoft-foundry`
+
+### Step 13: Smoke Test — **PENDING**
 
 After installation, verify on **both platforms**:
 
@@ -425,6 +450,38 @@ After installation, verify on **both platforms**:
 | Skill count | 16 | 12 engineering + 4 productivity |
 | Bucket READMEs | Included | Help humans browse the repo; make gaps visible during verification |
 | Source format | Local file copy, not git submodule | Easier customization; track upstream repos separately for updates |
+| GitHub publishing required | opencode only loads skills from GitHub-sourced installs | All local-path approaches silently fail; `.skill-lock.json` requires `sourceType: "github"` |
+
+## Lessons Learned
+
+### opencode Installation Requires GitHub
+
+opencode's skill loading is gated by `~/.agents/.skill-lock.json`. Only skills with `sourceType: "github"` are loaded. Every local-path approach was tested and failed:
+
+| Approach | Result |
+|----------|--------|
+| Flat copy to `~/.agents/skills/<name>/` | Files present but ignored without lock registration |
+| Manual `.skill-lock.json` with `sourceType: "local"` | Silently ignored by opencode at runtime |
+| `skills.paths` in `opencode.json` | Config key recognized but does not affect skill discovery |
+| `npx skills add ./local/path --global` | Installs to Claude Code but does not update `.skill-lock.json` |
+
+The only working path: publish to GitHub, then `npx skills add <org>/<repo> --global`.
+
+### `npx skills add` Replaces Lock File
+
+Running `npx skills add` replaces the entire `.skill-lock.json`, not just adds to it. Any previously installed skills are removed. Always reinstall existing skills afterward.
+
+### Skills Are On-Demand, Not Slash Commands
+
+opencode skills are loaded via the `skill` tool when the agent decides they're relevant. They don't appear in the `/` command menu. Users interact by asking the agent to use a skill, not by typing a command.
+
+### Windows Junction Links Work for Skill Discovery
+
+opencode discovers skills via directory scanning (`skills/*/SKILL.md`). On Windows, junction links (not symlinks, which need admin) work correctly for this. The `npx skills` tool uses copies by default on Windows.
+
+### `gh` CLI Not Pre-installed
+
+The GitHub CLI (`gh`) was not installed on the target system. It was installed via `winget install --id GitHub.cli`. Authentication requires browser-based device flow (`gh auth login --web`).
 
 ## What Was Excluded
 
