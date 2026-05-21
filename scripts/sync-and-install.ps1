@@ -1,0 +1,318 @@
+<#
+.SYNOPSIS
+    Sync combined-skills from upstream Pocock repo and install across all platforms.
+
+.DESCRIPTION
+    Phase 1: Pull upstream, diff, auto-copy safe files, flag manual-merge files.
+    Phase 2 (run with -Install): Commit, push, install via npx skills, fix opencode paths.
+
+.PARAMETER Install
+    Run Phase 2 after reviewing Phase 1 changes. Requires git push confirmation.
+
+.PARAMETER Verbose
+    Show detailed diff output.
+
+.EXAMPLE
+    .\sync-and-install.ps1            # Phase 1 only: sync + report
+    .\sync-and-install.ps1 -Install   # Phase 1 + Phase 2: sync + install everything
+#>
+
+param(
+    [switch]$Install,
+    [switch]$VerboseOutput
+)
+
+$ErrorActionPreference = "Stop"
+
+$UpstreamRoot  = "C:\Projects\01.Helper-Projects\mattpocock\skills"
+$CombinedRoot  = "C:\Projects\01.Helper-Projects\combined-skills"
+$OpenCodeSkills = "C:\Users\ahti_\.config\opencode\skills"
+$OpenCodeCmds   = "C:\Users\ahti_\.config\opencode\commands"
+$GithubRepo     = "ahtisamafzal/combined-engineering-skills"
+
+# --- Skill mapping ---
+# type: 'copy' = safe to overwrite, 'rename' = needs find-and-replace after copy,
+#       'rewrite' = manual merge only (never auto-copy)
+$SkillMapping = @(
+  # Engineering (straight copies)
+  @{ src = "skills\engineering\diagnose";                      dst = "skills\engineering\diagnose";                      type = "copy" },
+  @{ src = "skills\engineering\grill-with-docs";               dst = "skills\engineering\grill-with-docs";               type = "copy" },
+  @{ src = "skills\engineering\improve-codebase-architecture"; dst = "skills\engineering\improve-codebase-architecture"; type = "copy" },
+  @{ src = "skills\engineering\prototype";                     dst = "skills\engineering\prototype";                     type = "copy" },
+  @{ src = "skills\engineering\tdd";                           dst = "skills\engineering\tdd";                           type = "copy" },
+  @{ src = "skills\engineering\to-issues";                     dst = "skills\engineering\to-issues";                     type = "copy" },
+  @{ src = "skills\engineering\to-prd";                        dst = "skills\engineering\to-prd";                        type = "copy" },
+  @{ src = "skills\engineering\triage";                        dst = "skills\engineering\triage";                        type = "copy" },
+  @{ src = "skills\engineering\zoom-out";                      dst = "skills\engineering\zoom-out";                      type = "copy" },
+  # Misc -> Engineering
+  @{ src = "skills\misc\setup-pre-commit";                     dst = "skills\engineering\setup-pre-commit";              type = "copy" },
+  # Renamed skill (needs find-and-replace after copy)
+  @{ src = "skills\engineering\setup-matt-pocock-skills";      dst = "skills\engineering\setup-combined-skills";         type = "rename" },
+  # Rewritten skill (manual merge only)
+  @{ src = "skills\misc\git-guardrails-claude-code";           dst = "skills\engineering\git-guardrails";                type = "rewrite" },
+  # Productivity (straight copies)
+  @{ src = "skills\productivity\caveman";                      dst = "skills\productivity\caveman";                      type = "copy" },
+  @{ src = "skills\productivity\grill-me";                     dst = "skills\productivity\grill-me";                     type = "copy" },
+  @{ src = "skills\productivity\handoff";                      dst = "skills\productivity\handoff";                      type = "copy" },
+  @{ src = "skills\productivity\write-a-skill";                dst = "skills\productivity\write-a-skill";                type = "copy" }
+)
+
+function Write-Header($text) {
+  Write-Output ""
+  Write-Output "============================================"
+  Write-Output "  $text"
+  Write-Output "============================================"
+}
+
+function Write-Status($icon, $msg) {
+  Write-Output "  $($icon) $msg"
+}
+
+# ============================================================
+# PHASE 1: SYNC
+# ============================================================
+
+Write-Header "PHASE 1: Sync from upstream"
+
+# --- Pull upstream ---
+Write-Output "Pulling upstream Pocock repo..."
+Push-Location $UpstreamRoot
+git pull origin main 2>&1 | ForEach-Object { Write-Output "  $_" }
+Pop-Location
+
+# --- Diff and categorize ---
+Write-Header "Diffing skills"
+
+$autoCopied     = @()
+$newFiles       = @()
+$manualRequired = @()
+$unchanged      = 0
+
+foreach ($m in $SkillMapping) {
+  $srcDir = Join-Path $UpstreamRoot $m.src
+  $dstDir = Join-Path $CombinedRoot $m.dst
+
+  if (-not (Test-Path $srcDir)) {
+    Write-Status "?" "Source missing: $($m.src)"
+    continue
+  }
+
+  $srcFiles = Get-ChildItem $srcDir -File -Recurse
+
+  foreach ($f in $srcFiles) {
+    $rel  = $f.FullName.Substring($srcDir.Length + 1)
+    $srcF = $f.FullName
+    $dstF = Join-Path $dstDir $rel
+
+    # New file (doesn't exist in combined)
+    if (-not (Test-Path $dstF)) {
+      $newFiles += @{ src = $srcF; dst = $dstF; rel = "$($m.dst)\$rel"; type = $m.type }
+      Write-Status "+" "NEW: $($m.dst)\$rel"
+      continue
+    }
+
+    # Compare content
+    $diff = Compare-Object (Get-Content $srcF) (Get-Content $dstF)
+    if (-not $diff) {
+      $unchanged++
+      continue
+    }
+
+    # File differs
+    switch ($m.type) {
+      "copy" {
+        # Safe to auto-copy
+        Copy-Item -LiteralPath $srcF -Destination $dstF -Force
+        $autoCopied += @{ rel = "$($m.dst)\$rel"; type = "copy" }
+        Write-Status "`u{2713}" "COPIED: $($m.dst)\$rel"
+      }
+      "rename" {
+        $manualRequired += @{ rel = "$($m.dst)\$rel"; type = "rename"; src = $srcF; dst = $dstF }
+        Write-Status "!" "MANUAL (rename): $($m.dst)\$rel"
+      }
+      "rewrite" {
+        $manualRequired += @{ rel = "$($m.dst)\$rel"; type = "rewrite"; src = $srcF; dst = $dstF }
+        Write-Status "!" "MANUAL (rewrite): $($m.dst)\$rel"
+      }
+    }
+  }
+}
+
+# --- Auto-copy new files (safe ones only) ---
+if ($newFiles.Count -gt 0) {
+  Write-Header "New files from upstream"
+  foreach ($nf in $newFiles) {
+    $dir = Split-Path $nf.dst -Parent
+    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+
+    switch ($nf.type) {
+      "copy" {
+        Copy-Item -LiteralPath $nf.src -Destination $nf.dst -Force
+        Write-Status "`u{2713}" "COPIED: $($nf.rel)"
+        $autoCopied += @{ rel = $nf.rel; type = "new" }
+      }
+      "rename" {
+        Write-Status "!" "MANUAL (rename): $($nf.rel) - copy then apply find-and-replace"
+        $manualRequired += $nf
+      }
+      "rewrite" {
+        Write-Status "!" "MANUAL (rewrite): $($nf.rel) - merge manually"
+        $manualRequired += $nf
+      }
+    }
+  }
+}
+
+# --- Stale reference check ---
+Write-Header "Checking for stale references"
+$staleRefs = @()
+Get-ChildItem "$CombinedRoot\skills" -Filter "*.md" -Recurse | ForEach-Object {
+  $content = Get-Content $_.FullName -Raw
+  if ($content -match "matt-pocock|Matt Pocock|setup-matt-pocock") {
+    $staleRefs += $_.FullName.Substring($CombinedRoot.Length + 1)
+  }
+}
+if ($staleRefs.Count -eq 0) {
+  Write-Status "`u{2713}" "No stale references found"
+} else {
+  foreach ($ref in $staleRefs) {
+    Write-Status "!" "STALE: $ref"
+  }
+}
+
+# --- Summary ---
+Write-Header "Phase 1 Summary"
+Write-Output "  Unchanged:    $unchanged files"
+Write-Output "  Auto-copied:  $($autoCopied.Count) files"
+Write-Output "  New files:    $($newFiles.Count) found"
+Write-Output "  Manual merge: $($manualRequired.Count) files"
+Write-Output "  Stale refs:   $($staleRefs.Count) found"
+
+if ($manualRequired.Count -gt 0) {
+  Write-Output ""
+  Write-Output "  Files needing manual review:"
+  foreach ($mr in $manualRequired) {
+    Write-Output "    [$($mr.type)] $($mr.rel)"
+  }
+}
+
+if ($staleRefs.Count -gt 0) {
+  Write-Output ""
+  Write-Output "  Run find-and-replace on stale files:"
+  Write-Output "    setup-matt-pocock-skills  ->  setup-combined-skills"
+  Write-Output "    Matt Pocock's Skills       ->  Combined Skills"
+  Write-Output "    # Setup Matt Pocock's Skills -> # Setup Combined Skills"
+}
+
+# --- Stop here if no Install flag ---
+if (-not $Install) {
+  Write-Output ""
+  Write-Output "Review changes above. When ready, re-run with -Install flag."
+  exit 0
+}
+
+# ============================================================
+# PHASE 2: INSTALL
+# ============================================================
+
+Write-Header "PHASE 2: Install"
+
+# --- Commit and push ---
+Write-Output "Checking for uncommitted changes..."
+Push-Location $CombinedRoot
+$status = git status --porcelain 2>&1
+if ($status) {
+  Write-Output "  Uncommitted changes found. Committing..."
+  git add -A 2>&1 | ForEach-Object { Write-Output "  $_" }
+  $commitMsg = Read-Host "  Enter commit message (or Ctrl+C to abort)"
+  git commit -m $commitMsg 2>&1 | ForEach-Object { Write-Output "  $_" }
+  Write-Output "  Pushing to GitHub..."
+  git push origin master 2>&1 | ForEach-Object { Write-Output "  $_" }
+} else {
+  Write-Status "`u{2713}" "No uncommitted changes"
+}
+Pop-Location
+
+# --- npx skills install ---
+Write-Header "Installing via npx skills"
+
+Write-Output "  Project-level install..."
+Push-Location (Split-Path $CombinedRoot -Parent)
+npx skills@latest add $GithubRepo --all 2>&1 | ForEach-Object { Write-Output "  $_" }
+Pop-Location
+
+Write-Output "  Global install..."
+npx skills@latest add $GithubRepo --global --all 2>&1 | ForEach-Object { Write-Output "  $_" }
+
+# --- opencode: ensure junction links ---
+Write-Header "Fixing opencode skill paths"
+
+$globalAgentsSkills = "C:\Users\ahti_\.agents\skills"
+$skillDirs = Get-ChildItem $globalAgentsSkills -Directory -ErrorAction SilentlyContinue
+
+$junctionsCreated = 0
+$junctionsExisting = 0
+
+foreach ($dir in $skillDirs) {
+  $name = $dir.Name
+  $target = Join-Path $OpenCodeSkills $name
+  if (-not (Test-Path $target)) {
+    New-Item -ItemType Junction -Path $target -Target $dir.FullName -Force | Out-Null
+    Write-Status "+" "Junction: $name"
+    $junctionsCreated++
+  } else {
+    $junctionsExisting++
+  }
+}
+Write-Output "  Created: $junctionsCreated | Existing: $junctionsExisting"
+
+# --- opencode: generate command files ---
+Write-Header "Generating opencode command files"
+
+$commandsCreated = 0
+$commandsUpdated = 0
+
+foreach ($dir in $skillDirs) {
+  $name = $dir.Name
+  $skillMd = Join-Path $dir.FullName "SKILL.md"
+  if (-not (Test-Path $skillMd)) { continue }
+
+  # Extract description from frontmatter
+  $content = Get-Content $skillMd -Raw
+  if ($content -notmatch '(?s)^---\s*\n.*?description:\s*(.+?)(\n|$).*?---') { continue }
+  $desc = $Matches[1].Trim()
+
+  # Build command file content
+  $cmdContent = @"
+---
+description: $desc
+---
+Load the skill "$name" using the skill tool and follow its instructions. `$ARGUMENTS
+"@
+
+  $cmdPath = Join-Path $OpenCodeCmds "$name.md"
+  if (-not (Test-Path $cmdPath)) {
+    Set-Content -LiteralPath $cmdPath -Value $cmdContent -NoNewline
+    Write-Status "+" "Command: /$name"
+    $commandsCreated++
+  } else {
+    $existing = Get-Content $cmdPath -Raw
+    if ($existing -ne $cmdContent) {
+      Set-Content -LiteralPath $cmdPath -Value $cmdContent -NoNewline
+      Write-Status "~" "Updated: /$name"
+      $commandsUpdated++
+    }
+  }
+}
+Write-Output "  Created: $commandsCreated | Updated: $commandsUpdated"
+
+# --- Final verification ---
+Write-Header "Verification"
+
+$opencodeSkills = (Get-ChildItem $OpenCodeSkills -Directory -ErrorAction SilentlyContinue).Count
+$opencodeCmds   = (Get-ChildItem $OpenCodeCmds -Filter "*.md" -ErrorAction SilentlyContinue).Count
+Write-Output "  opencode skills dir:   $opencodeSkills entries"
+Write-Output "  opencode commands dir: $opencodeCmds entries"
+
+Write-Output ""
+Write-Output "Done. Restart opencode, Claude Code, and VS Code for changes to take effect."

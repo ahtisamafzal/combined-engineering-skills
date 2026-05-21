@@ -2,6 +2,18 @@
 
 Everything you need to sync upstream changes, add new skills, and install across all three platforms without re-discovering the gotchas.
 
+### Quick Start
+
+```powershell
+# Phase 1: Pull upstream, diff, auto-copy safe files, report manual items
+.\scripts\sync-and-install.ps1
+
+# Review output, fix any MANUAL items, then:
+.\scripts\sync-and-install.ps1 -Install
+```
+
+The script handles all safe copies, opencode junction links, and command file generation automatically. It only flags files that need human judgment.
+
 ---
 
 ## 1. Sync from Upstream Pocock
