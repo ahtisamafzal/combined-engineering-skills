@@ -19,10 +19,11 @@
 
 param(
     [switch]$Install,
-    [switch]$VerboseOutput
+    [switch]$VerboseOutput,
+    [string]$CommitMessage = "Sync upstream Pocock skills"
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $UpstreamRoot  = "C:\Projects\01.Helper-Projects\mattpocock\skills"
 $CombinedRoot  = "C:\Projects\01.Helper-Projects\combined-skills"
@@ -77,7 +78,7 @@ Write-Header "PHASE 1: Sync from upstream"
 # --- Pull upstream ---
 Write-Output "Pulling upstream Pocock repo..."
 Push-Location $UpstreamRoot
-git pull origin main 2>&1 | ForEach-Object { Write-Output "  $_" }
+git pull origin main 2>&1 | Select-String -NotMatch "^From " | ForEach-Object { Write-Output "  $($_.ToString().Trim())" }
 Pop-Location
 
 # --- Diff and categorize ---
@@ -163,21 +164,37 @@ if ($newFiles.Count -gt 0) {
   }
 }
 
-# --- Stale reference check ---
-Write-Header "Checking for stale references"
+# --- Stale reference check + auto-fix ---
+Write-Header "Checking and fixing stale references"
 $staleRefs = @()
+$staleFixed = 0
 Get-ChildItem "$CombinedRoot\skills" -Filter "*.md" -Recurse | ForEach-Object {
   $content = Get-Content $_.FullName -Raw
   if ($content -match "matt-pocock|Matt Pocock|setup-matt-pocock") {
-    $staleRefs += $_.FullName.Substring($CombinedRoot.Length + 1)
+    $relPath = $_.FullName.Substring($CombinedRoot.Length + 1)
+
+    # Auto-fix: apply find-and-replace
+    $fixed = $content
+    $fixed = $fixed -replace 'setup-matt-pocock-skills', 'setup-combined-skills'
+    $fixed = $fixed -replace "Matt Pocock's Skills", 'Combined Skills'
+    $fixed = $fixed -replace "# Setup Matt Pocock's Skills", "# Setup Combined Skills"
+    Set-Content -LiteralPath $_.FullName -Value $fixed -NoNewline
+
+    # Re-check after fix
+    $recheck = Get-Content $_.FullName -Raw
+    if ($recheck -match "matt-pocock|Matt Pocock|setup-matt-pocock") {
+      $staleRefs += $relPath
+      Write-Status "!" "STALE (still has refs after auto-fix): $relPath"
+    } else {
+      $staleFixed++
+      Write-Status "`u{2713}" "FIXED: $relPath"
+    }
   }
 }
-if ($staleRefs.Count -eq 0) {
+if ($staleRefs.Count -eq 0 -and $staleFixed -eq 0) {
   Write-Status "`u{2713}" "No stale references found"
-} else {
-  foreach ($ref in $staleRefs) {
-    Write-Status "!" "STALE: $ref"
-  }
+} elseif ($staleFixed -gt 0) {
+  Write-Output "  Auto-fixed: $staleFixed files"
 }
 
 # --- Summary ---
@@ -186,7 +203,7 @@ Write-Output "  Unchanged:    $unchanged files"
 Write-Output "  Auto-copied:  $($autoCopied.Count) files"
 Write-Output "  New files:    $($newFiles.Count) found"
 Write-Output "  Manual merge: $($manualRequired.Count) files"
-Write-Output "  Stale refs:   $($staleRefs.Count) found"
+Write-Output "  Stale refs:   $($staleRefs.Count) remaining ($staleFixed auto-fixed)"
 
 if ($manualRequired.Count -gt 0) {
   Write-Output ""
@@ -198,10 +215,10 @@ if ($manualRequired.Count -gt 0) {
 
 if ($staleRefs.Count -gt 0) {
   Write-Output ""
-  Write-Output "  Run find-and-replace on stale files:"
-  Write-Output "    setup-matt-pocock-skills  ->  setup-combined-skills"
-  Write-Output "    Matt Pocock's Skills       ->  Combined Skills"
-  Write-Output "    # Setup Matt Pocock's Skills -> # Setup Combined Skills"
+  Write-Output "  Files still stale after auto-fix (need manual edit):"
+  foreach ($ref in $staleRefs) {
+    Write-Output "    $ref"
+  }
 }
 
 # --- Stop here if no Install flag ---
@@ -223,11 +240,10 @@ Push-Location $CombinedRoot
 $status = git status --porcelain 2>&1
 if ($status) {
   Write-Output "  Uncommitted changes found. Committing..."
-  git add -A 2>&1 | ForEach-Object { Write-Output "  $_" }
-  $commitMsg = Read-Host "  Enter commit message (or Ctrl+C to abort)"
-  git commit -m $commitMsg 2>&1 | ForEach-Object { Write-Output "  $_" }
+  git add -A 2>&1 | Select-String -NotMatch "^$" | ForEach-Object { Write-Output "  $($_.ToString().Trim())" }
+  git commit -m $CommitMessage 2>&1 | Select-String -NotMatch "^$" | ForEach-Object { Write-Output "  $($_.ToString().Trim())" }
   Write-Output "  Pushing to GitHub..."
-  git push origin master 2>&1 | ForEach-Object { Write-Output "  $_" }
+  git push origin master 2>&1 | Select-String -NotMatch "^(From|remote:)" | ForEach-Object { Write-Output "  $($_.ToString().Trim())" }
 } else {
   Write-Status "`u{2713}" "No uncommitted changes"
 }
