@@ -13,9 +13,9 @@ These are active in every conversation without any command:
 3. **Surgical Changes** — Touch only what you must. Clean up only your own mess.
 4. **Goal-Driven Execution** — Define success criteria. Loop until verified.
 
-### Slash Commands (16)
+### Slash Commands (17)
 
-#### Engineering (12)
+#### Engineering (13)
 
 | Skill | What It Does |
 |-------|-------------|
@@ -24,6 +24,7 @@ These are active in every conversation without any command:
 | `/grill-with-docs` | Grilling session that challenges your plan against domain model and docs |
 | `/improve-codebase-architecture` | Find deepening opportunities informed by domain language and ADRs |
 | `/prototype` | Build a throwaway prototype to flesh out a design |
+| `/review` | Review changes against standards and spec side by side from a fixed point |
 | `/setup-combined-skills` | Scaffold per-repo config (issue tracker, triage labels, domain docs) |
 | `/setup-pre-commit` | Set up Husky + lint-staged + Prettier pre-commit hooks |
 | `/tdd` | Test-driven development with red-green-refactor loop |
@@ -120,7 +121,7 @@ Then remove the `instructions` entry from your `opencode.json` or delete `AGENTS
 | Personal skills | edit-article, obsidian-vault | Matt's personal setup |
 | Misc skill | scaffold-exercises | Matt's specific course tooling (pnpm ai-hero-cli) |
 | Deprecated skills | design-an-interface, qa, request-refactor-plan, ubiquitous-language | No longer maintained |
-| In-progress skills | review, writing-beats, writing-fragments, writing-shape | Not yet ready |
+| In-progress skills | writing-beats, writing-fragments, writing-shape | Not yet ready |
 | Personal tooling | migrate-to-shoehorn | Matt's personal tooling |
 
 ## Updates
@@ -129,7 +130,31 @@ This skill set tracks two upstream sources:
 - **Pocock skills**: `https://github.com/mattpocock/skills`
 - **Karpathy guidelines**: Karpathy's behavioral principles for AI coding
 
-To update, re-copy from upstream sources and re-apply the find-and-replace changes from the implementation plan in `docs/IMPLEMENTATION-PLAN.md`.
+### Maintenance Runbook (Use This Every Time)
+
+From the repo root, run:
+
+```powershell
+.\scripts\sync-and-install.ps1
+```
+
+This script will:
+- Pull latest upstream Pocock changes.
+- Compare mapped skills against this repo.
+- Auto-copy safe updates.
+- Auto-handle renamed setup skill sync (`setup-matt-pocock-skills` -> `setup-combined-skills`).
+- Report any manual-merge files.
+
+Current manual-merge exception:
+- `skills/engineering/git-guardrails/SKILL.md` (intentionally customized for Claude Code + opencode)
+
+If the output looks good, run install phase:
+
+```powershell
+.\scripts\sync-and-install.ps1 -Install
+```
+
+For full maintenance details, see `docs/MAINTAINER-GUIDE.md`.
 
 ## Why Combine These?
 

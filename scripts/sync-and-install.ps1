@@ -40,6 +40,7 @@ $SkillMapping = @(
   @{ src = "skills\engineering\grill-with-docs";               dst = "skills\engineering\grill-with-docs";               type = "copy" },
   @{ src = "skills\engineering\improve-codebase-architecture"; dst = "skills\engineering\improve-codebase-architecture"; type = "copy" },
   @{ src = "skills\engineering\prototype";                     dst = "skills\engineering\prototype";                     type = "copy" },
+  @{ src = "skills\in-progress\review";                        dst = "skills\engineering\review";                        type = "copy" },
   @{ src = "skills\engineering\tdd";                           dst = "skills\engineering\tdd";                           type = "copy" },
   @{ src = "skills\engineering\to-issues";                     dst = "skills\engineering\to-issues";                     type = "copy" },
   @{ src = "skills\engineering\to-prd";                        dst = "skills\engineering\to-prd";                        type = "copy" },
@@ -67,6 +68,29 @@ function Write-Header($text) {
 
 function Write-Status($icon, $msg) {
   Write-Output "  $($icon) $msg"
+}
+
+function Convert-RenamedSkillContent([string]$content) {
+  $updated = $content
+  $updated = $updated -replace 'setup-matt-pocock-skills', 'setup-combined-skills'
+  $updated = $updated -replace "Matt Pocock's Skills", 'Combined Skills'
+  $updated = $updated -replace "# Setup Matt Pocock's Skills", "# Setup Combined Skills"
+
+  $principlesNote = "Engineering principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) are active by default and require no configuration."
+  if ($updated -match '(?m)^# Setup Combined Skills\s*$' -and $updated -notmatch [regex]::Escape($principlesNote)) {
+    $updated = $updated -replace '(?m)^# Setup Combined Skills\s*$', "# Setup Combined Skills`r`n`r`n$principlesNote"
+  }
+
+  return $updated
+}
+
+function Copy-RenamedSkillFile([string]$srcF, [string]$dstF) {
+  $dir = Split-Path $dstF -Parent
+  if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+
+  $raw = Get-Content -LiteralPath $srcF -Raw
+  $converted = Convert-RenamedSkillContent $raw
+  Set-Content -LiteralPath $dstF -Value $converted -NoNewline
 }
 
 # ============================================================
@@ -128,8 +152,9 @@ foreach ($m in $SkillMapping) {
         Write-Status "`u{2713}" "COPIED: $($m.dst)\$rel"
       }
       "rename" {
-        $manualRequired += @{ rel = "$($m.dst)\$rel"; type = "rename"; src = $srcF; dst = $dstF }
-        Write-Status "!" "MANUAL (rename): $($m.dst)\$rel"
+        Copy-RenamedSkillFile -srcF $srcF -dstF $dstF
+        $autoCopied += @{ rel = "$($m.dst)\$rel"; type = "rename" }
+        Write-Status "`u{2713}" "COPIED+RENAMED: $($m.dst)\$rel"
       }
       "rewrite" {
         $manualRequired += @{ rel = "$($m.dst)\$rel"; type = "rewrite"; src = $srcF; dst = $dstF }
@@ -153,8 +178,9 @@ if ($newFiles.Count -gt 0) {
         $autoCopied += @{ rel = $nf.rel; type = "new" }
       }
       "rename" {
-        Write-Status "!" "MANUAL (rename): $($nf.rel) - copy then apply find-and-replace"
-        $manualRequired += $nf
+        Copy-RenamedSkillFile -srcF $nf.src -dstF $nf.dst
+        Write-Status "`u{2713}" "COPIED+RENAMED: $($nf.rel)"
+        $autoCopied += @{ rel = $nf.rel; type = "rename-new" }
       }
       "rewrite" {
         Write-Status "!" "MANUAL (rewrite): $($nf.rel) - merge manually"

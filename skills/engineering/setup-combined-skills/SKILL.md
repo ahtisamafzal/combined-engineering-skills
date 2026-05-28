@@ -7,7 +7,6 @@ disable-model-invocation: true
 # Setup Combined Skills
 
 Engineering principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) are active by default and require no configuration.
-
 Scaffold the per-repo configuration that the engineering skills assume:
 
 - **Issue tracker** — where issues live (GitHub by default; local markdown is also supported out of the box)

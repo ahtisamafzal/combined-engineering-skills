@@ -8,6 +8,7 @@
     "./skills/engineering/grill-with-docs",
     "./skills/engineering/improve-codebase-architecture",
     "./skills/engineering/prototype",
+    "./skills/engineering/review",
     "./skills/engineering/setup-combined-skills",
     "./skills/engineering/setup-pre-commit",
     "./skills/engineering/tdd",

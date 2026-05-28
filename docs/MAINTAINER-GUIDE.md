@@ -39,6 +39,7 @@ $mapping = @(
   @{ src = 'skills\engineering\grill-with-docs';                    dst = 'skills\engineering\grill-with-docs' },
   @{ src = 'skills\engineering\improve-codebase-architecture';      dst = 'skills\engineering\improve-codebase-architecture' },
   @{ src = 'skills\engineering\prototype';                          dst = 'skills\engineering\prototype' },
+  @{ src = 'skills\in-progress\review';                             dst = 'skills\engineering\review' },
   @{ src = 'skills\engineering\tdd';                                dst = 'skills\engineering\tdd' },
   @{ src = 'skills\engineering\to-issues';                          dst = 'skills\engineering\to-issues' },
   @{ src = 'skills\engineering\to-prd';                             dst = 'skills\engineering\to-prd' },
@@ -86,7 +87,7 @@ For each file that differs, there are three cases:
 | Case | Action |
 |------|--------|
 | **Plain copy** (no rename, no rewrite) | Copy upstream file over combined file |
-| **Renamed skill** (`setup-combined-skills`) | Copy upstream, then re-apply find-and-replace: `setup-matt-pocock-skills` → `setup-combined-skills`, `Matt Pocock's Skills` → `Combined Skills`, plus add the one-line principles note |
+| **Renamed skill** (`setup-combined-skills`) | Script auto-copies and applies rename transforms (`setup-matt-pocock-skills` → `setup-combined-skills`, `Matt Pocock's Skills` → `Combined Skills`) and ensures the one-line principles note is present |
 | **Rewritten skill** (`git-guardrails`) | Read upstream diff, manually merge changes into the dual-platform combined version. Do NOT blindly overwrite |
 
 After applying changes:

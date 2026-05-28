@@ -5,6 +5,7 @@
 - [grill-with-docs](./grill-with-docs/SKILL.md) — Grilling session that challenges your plan against the existing domain model and updates documentation inline
 - [improve-codebase-architecture](./improve-codebase-architecture/SKILL.md) — Find deepening opportunities in a codebase informed by domain language and ADRs
 - [prototype](./prototype/SKILL.md) — Build a throwaway prototype to flesh out a design before committing
+- [review](./review/SKILL.md) — Review changes since a fixed point on two axes: standards conformance and spec fidelity
 - [setup-combined-skills](./setup-combined-skills/SKILL.md) — Scaffold per-repo configuration (issue tracker, triage labels, domain docs)
 - [setup-pre-commit](./setup-pre-commit/SKILL.md) — Set up Husky pre-commit hooks with lint-staged, Prettier, type checking, and tests
 - [tdd](./tdd/SKILL.md) — Test-driven development with red-green-refactor loop
